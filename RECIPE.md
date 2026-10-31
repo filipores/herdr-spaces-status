@@ -40,6 +40,7 @@ A replacement Spaces sidebar for the Herdr desktop app. Keep familiar project na
 ## Watch out
 
 - This is for the native **Herdr App**, not the terminal-only Herdr configuration.
+- The optional Pi and OpenCode bridges are separate from the mod; see [client integrations](integrations/README.md) for tested versions, setup and removal. Install them only with explicit permission, after verifying a real status gap. The sidebar itself must not infer or modify agent states.
 - Never overwrite a user's existing mod, layout or keybindings. If `spaces-glow` already exists, stop or rename the new copy and its layout reference.
 - Copying a `place: "none"` mod alone does not make it visible. Explicitly replace the existing Spaces block. Do not create a duplicate sidebar.
 - A cloned layout still references its original mods. Point the Spaces block at the custom mod; leave every other block alone.

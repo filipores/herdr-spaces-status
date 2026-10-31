@@ -2,14 +2,14 @@
 
 Quiet status signals for the Herdr desktop app's Spaces sidebar.
 
-![Spaces Glow](preview.png)
+![Demo spaces with a silver working contour, green completion glow and orange waiting glow](preview.png)
 
-- **Working:** a thin silver-gray contour gently breathes. No spinner, no flashing row fill.
-- **Done:** a green glow draws your attention to an unseen result.
+- **Working:** a thin silver-gray contour gently breathes. No spinner or flashing fill.
+- **Done:** a green glow marks an unseen response, not guaranteed task success.
 - **Blocked:** an orange glow means an agent needs you.
 - **Idle:** no glow or animation.
 
-Selection keeps its normal, static background. A space with several agents can keep its working contour alongside a done or blocked glow. Both expanded and compact sidebars are supported.
+Selection backgrounds stay still. Expanded and compact sidebars are supported; spaces with several agents can show working and attention signals together.
 
 ## Install
 
@@ -21,39 +21,38 @@ Ask your agent:
 
 For manual installation:
 
-1. Read [RECIPE.md](RECIPE.md), particularly **Watch out** and the external-command disclosure.
-2. Copy `mods/spaces-glow/` into your Herdr app home's `mods/` directory. Stop if that name already exists.
-3. In your **personal** layout, replace the Spaces block's `"content": { "mod": "spaces" }` with `"content": { "mod": "spaces-glow" }`. Keep the sidebar node's `id` as `"sidebar"` for compact-mode detection. Clone a shipped layout first; never edit Herdr's originals.
-4. Run `herdr-app check ~/.config/herdr-app/mods/spaces-glow`, then inspect the running app for errors with `herdr-app status`.
+1. Read the [recipe](RECIPE.md), including its external-access disclosure and precautions.
+2. Copy `mods/spaces-glow/` into your Herdr app home's `mods/` directory (default: `~/.config/herdr-app/mods/`). Stop if that name already exists.
+3. In a **personal** layout, change the existing Spaces block's `content.mod` from `spaces` to `spaces-glow`. Keep its node ID as `sidebar`. Clone a shipped layout first; never edit Herdr's originals.
+4. Run `herdr-app check ~/.config/herdr-app/mods/spaces-glow`, then check `herdr-app status` for errors. Adjust the path if your app home differs.
 
-The manifest uses `place: "none"`: copying the mod alone intentionally does **not** add a second sidebar. No layout or keybinding files are distributed.
+Copying the mod alone does not display it: `place: "none"` prevents a duplicate sidebar. No layouts or keybindings are bundled.
 
-**Undo:** point that block back to `"spaces"`. Your terminals and the rest of the layout are untouched.
+**Undo:** set that block's `content.mod` back to `spaces`. Your terminals and other panels are untouched.
 
-## What it accesses
+## Client integrations
 
-This is a customized copy of Herdr's Spaces mod. It reads Herdr's live spaces, agents and machines; runs read-only `git status`/`git rev-parse` commands; watches local Git metadata; and calls `hc machine ls`. Git reads can run on machines you have connected to Herdr. Clicks retain the original space selection, creation, reordering and context menus. It saves avatar colors and folded-machine preferences in Herdr's local state.
-
-No analytics, credential handling, package dependencies or new animation polling. Herdr's existing Git/machine refresh behavior remains.
+The sidebar displays status reported by each client. For missing question indicators, see [client compatibility and optional bridges](integrations/README.md). That guide covers tested versions, Pi and OpenCode setup, and removal. Bridges are separate from the sidebar install and require explicit permission.
 
 ## Checks
 
-From this repository:
+From the repository root, with Node **22.18+** and Herdr App installed:
 
 ```sh
 node --experimental-vm-modules checks/spaces-glow.cjs
+node --test checks/pi-question-status.test.mjs
+node --experimental-vm-modules --test checks/opencode-status.test.mjs
 herdr-app check mods/spaces-glow
 ```
 
-The Node check covers 68 cases: status colors, unchanged selection backgrounds, contour-only animation, dark/light color inputs, compact rows, mixed agent states and isolation between spaces. The native render check and actual app verification remain necessary.
+These cover 68 sidebar cases and 16 cases per bridge. Interactive verification is described in the [integration guide](integrations/README.md#verification).
 
-## Limits
+## Behavior and limits
 
-- `done` means an agent finished while you were not looking. It does **not** guarantee task success; Herdr changes it to `idle` once seen.
-- The copied Spaces implementation does not automatically receive upstream improvements.
-- Runtime icons and context menus come from Herdr's shipped `workspace-chrome` and `menu` mods.
-- Light-mode inputs are tested, but Light Mode, VoiceOver and system Reduce Motion behavior have not been visually/accessibility tested. Herdr's mod API exposes no documented Reduce Motion preference here.
-- The preview uses synthetic space names and statuses, not a real workspace.
+- Git and machine reads use the original read-only commands, including on connected Herdr machines. Avatar colors and folded-machine preferences are stored locally. No analytics, credential handling or added package dependencies.
+- Herdr changes `done` to `idle` once the response is seen. The mod does not keep its own completion state.
+- This custom copy does not automatically inherit upstream Spaces changes. Icons and context menus still come from Herdr's shipped mods.
+- Light-mode inputs are tested; Light Mode, VoiceOver and system Reduce Motion have not been visually/accessibility tested. No documented Reduce Motion preference is exposed by the mod API.
 
 ## License
 
