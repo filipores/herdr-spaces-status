@@ -1,6 +1,6 @@
 # Client integrations
 
-[Spaces Glow](../README.md) can show orange only when the client reports `blocked`. These optional bridges fill specific reporting gaps; they do not infer questions from assistant prose, answer dialogs or grant permissions.
+[Spaces Status](../README.md) can show orange only when the client reports `blocked`. These optional bridges fill specific reporting gaps; they do not infer questions from assistant prose, answer dialogs or grant permissions.
 
 ## Compatibility
 

@@ -1,5 +1,5 @@
-Spaces Glow
-https://github.com/filipores/herdr-spaces-glow
+Spaces Status
+https://github.com/filipores/herdr-spaces-status
 
 This distribution contains a modified copy of the Spaces mod from Herdr App:
 https://github.com/herdrdev/herdr-app/blob/v0.1.9/defaults/mods/spaces/main.js
@@ -8,7 +8,7 @@ Herdr App is licensed under the Apache License, Version 2.0.
 Modifications by filipores add green/orange attention glows, a neutral animated
 working contour, and corresponding behavior checks and documentation.
 The original mod metadata is retained in mods/spaces-glow/mod.json, with its
-display title changed to Spaces Glow.
+display title changed to Spaces Status.
 
 Herdr's runtime, fonts and icon assets are not redistributed here.
 This is an independent community mod, not an official Herdr release.

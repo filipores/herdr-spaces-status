@@ -1,6 +1,6 @@
-# Spaces Glow
+# Spaces Status
 
-Quiet status signals for the Herdr desktop app's Spaces sidebar.
+Agent status directly on your Herdr spaces. No separate Agents section needed for status monitoring.
 
 ![Demo spaces with a silver working contour, green completion glow and orange waiting glow](preview.png)
 
@@ -17,7 +17,7 @@ Requires the **Herdr desktop app**, not the terminal-only `herdr` program. Teste
 
 Ask your agent:
 
-> Install https://github.com/filipores/herdr-spaces-glow as a replacement for my Spaces sidebar. Read RECIPE.md and the code first. Preserve my layout, keybindings, and terminals; clone a shipped layout before changing it. Do not overwrite an existing mod with the same name.
+> Install https://github.com/filipores/herdr-spaces-status as a replacement for my Spaces sidebar. Read RECIPE.md and the code first. Preserve my layout, keybindings, and terminals; clone a shipped layout before changing it. Do not overwrite an existing mod with the same name.
 
 For manual installation:
 
@@ -26,7 +26,7 @@ For manual installation:
 3. In a **personal** layout, change the existing Spaces block's `content.mod` from `spaces` to `spaces-glow`. Keep its node ID as `sidebar`. Clone a shipped layout first; never edit Herdr's originals.
 4. Run `herdr-app check ~/.config/herdr-app/mods/spaces-glow`, then check `herdr-app status` for errors. Adjust the path if your app home differs.
 
-Copying the mod alone does not display it: `place: "none"` prevents a duplicate sidebar. No layouts or keybindings are bundled.
+Copying the mod alone does not display it: `place: "none"` prevents a duplicate sidebar. The technical mod ID remains `spaces-glow` so existing layouts keep working. No layouts or keybindings are bundled.
 
 **Undo:** set that block's `content.mod` back to `spaces`. Your terminals and other panels are untouched.
 

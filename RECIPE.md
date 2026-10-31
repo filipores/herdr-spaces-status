@@ -1,8 +1,8 @@
-# Spaces Glow
+# Spaces Status
 
-A replacement Spaces sidebar for the Herdr desktop app. Keep familiar project names, worktree nesting and Git hints; add green and orange attention glows and a quiet silver contour for ongoing work. Only the contour breathes: selected backgrounds and text remain still.
+A replacement Spaces sidebar for the Herdr desktop app, with agent status directly on each space. It replaces the separate Agents section for status monitoring. Keep familiar project names, worktree nesting and Git hints; add green and orange attention glows and a quiet silver contour for ongoing work. Only the contour breathes: selected backgrounds and text remain still.
 
-![Spaces Glow](preview.png)
+![Spaces Status](preview.png)
 
 ## What you see
 
