@@ -5,7 +5,7 @@ Agent status directly on your Herdr spaces. No separate Agents section needed fo
 ![Demo spaces with a silver working contour, green completion glow and orange waiting glow](preview.png)
 
 - **Working:** a thin silver-gray contour gently breathes. No spinner or flashing fill.
-- **Done:** a green glow marks an unseen response, not guaranteed task success.
+- **Done:** a green glow marks an unseen response.
 - **Blocked:** an orange glow means an agent needs you.
 - **Idle:** no glow or animation.
 
@@ -30,6 +30,21 @@ Copying the mod alone does not display it: `place: "none"` prevents a duplicate 
 
 **Undo:** set that block's `content.mod` back to `spaces`. Your terminals and other panels are untouched.
 
+## Optional navigation keys
+
+`spaces-glow.first_done` focuses the first done agent; `spaces-glow.next_working` selects the next space with a working agent, wrapping after the active space. With no match, nothing happens.
+
+Suggestions only: merge these into your `keys.json` after checking for conflicts. The mod bundles no keybindings and must be shown in your layout to receive commands.
+
+```json
+{
+  "global": {
+    "ctrl-shift-f7": "spaces-glow.first_done",
+    "ctrl-shift-f8": "spaces-glow.next_working"
+  }
+}
+```
+
 ## Client integrations
 
 The sidebar displays status reported by each client. For missing question indicators, see [client compatibility and optional bridges](integrations/README.md). That guide covers tested versions, Pi and OpenCode setup, and removal. Bridges are separate from the sidebar install and require explicit permission.
@@ -45,12 +60,12 @@ node --experimental-vm-modules --test checks/opencode-status.test.mjs
 herdr-app check mods/spaces-glow
 ```
 
-These cover glow/pulse rendering, safe drag-reordering and 16 cases per bridge. Interactive verification is described in the [integration guide](integrations/README.md#verification).
+These cover glow/pulse rendering, navigation, safe drag-reordering and 16 cases per bridge. Interactive verification is described in the [integration guide](integrations/README.md#verification).
 
 ## Behavior and limits
 
 - Git and machine reads use the original read-only commands, including on connected Herdr machines. Avatar colors and folded-machine preferences are stored locally. No analytics, credential handling or added package dependencies.
-- Herdr changes `done` to `idle` once the response is seen. The mod does not keep its own completion state.
+- Herdr changes `done` to `idle` once the response is seen; it signals an unseen response, not guaranteed task success.
 - Re-sync this fork with the shipped Spaces mod after Herdr updates; icons and menus still come from the app.
 - Light-mode inputs are tested; Light Mode, VoiceOver and system Reduce Motion have not been visually/accessibility tested. No documented Reduce Motion preference is exposed by the mod API.
 

@@ -31,7 +31,7 @@ async function check() {
     'gpui-base': { v_flex: element, h_flex: element },
     herdr: Object.fromEntries([
       'spaces', 'machines', 'panes', 'run', 'openOverlay', 'exec', 'hc',
-      'theme', 'shared', 'setShared', 'watchFolder', 'window', 'layout',
+      'theme', 'shared', 'setShared', 'watchFolder', 'window', 'layout', 'nextCommand',
     ].map(name => [name, () => null])),
   };
   Object.assign(dependencies.herdr, {
@@ -40,7 +40,8 @@ async function check() {
   });
   const source = fs.readFileSync(path.join(__dirname, '../mods/spaces-glow/main.js'), 'utf8');
   const mod = new vm.SourceTextModule(source);
-  await mod.link(name => new vm.SyntheticModule(Object.keys(dependencies[name]), function () {
+  const navigation = new vm.SourceTextModule(fs.readFileSync(path.join(__dirname, '../mods/spaces-glow/navigation.js'), 'utf8'));
+  await mod.link(name => name === './navigation.js' ? navigation : new vm.SyntheticModule(Object.keys(dependencies[name]), function () {
     for (const [key, value] of Object.entries(dependencies[name])) this.setExport(key, value);
   }));
   await mod.evaluate();
@@ -135,6 +136,20 @@ async function check() {
   event(0, 'on_mouse_down:left');
   event(0, 'on_mouse_up:left');
   assert.deepEqual(commands, [{ name: 'space.select', args: { id: 'a' } }]);
-  console.log('PASS: 20 glow cases + 48 outline pulse cases + drag/drop and click guards.');
+  const { navigationTarget } = navigation.namespace;
+  const sp = [{ id: 'a' }, { id: 'b', active: true }, { id: 'remote/a' }];
+  const ag = [{ address: 't1', space: 'a', status: 'done' }, { address: 'remote/t1', space: 'remote/a', status: 'done' }];
+  assert.deepEqual(navigationTarget('first_done', sp, ag), { name: 'agent.focus', args: { terminal: 't1' } });
+  assert.deepEqual(navigationTarget('first_done', sp, ag.slice(1)), { name: 'agent.focus', args: { terminal: 'remote/t1' } });
+  ag[0].status = ag[1].status = 'working';
+  assert.deepEqual(navigationTarget('next_working', sp, ag), { name: 'space.select', args: { id: 'remote/a' } });
+  assert.deepEqual(navigationTarget('next_working', sp, ag.slice(0, 1)), { name: 'space.select', args: { id: 'a' } });
+  assert.deepEqual(navigationTarget('next_working', [{ id: 'a', active: true }], ag), { name: 'space.select', args: { id: 'a' } });
+  assert.deepEqual(navigationTarget('next_working', sp.map(s => ({ id: s.id })), ag), { name: 'space.select', args: { id: 'a' } });
+  assert.equal(navigationTarget('first_done', sp, ag), undefined);
+  assert.equal(navigationTarget('next_working', sp, []), undefined);
+  assert.equal(navigationTarget('next_working', [], ag), undefined);
+  assert.equal(navigationTarget('unknown', sp, ag), undefined);
+  console.log('PASS: 20 glow cases + 48 outline pulse cases + drag/drop, click and navigation guards.');
 }
 check().catch(error => { console.error(error); process.exitCode = 1; });
