@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Derived from herdrdev/herdr-app v0.1.9, defaults/mods/spaces/main.js.
+// Derived from herdrdev/herdr-app v0.1.11, defaults/mods/spaces/main.js.
 // Modified by filipores: attention glows and a neutral, animated working contour.
 // Workspace spaces: stable colored avatars, worktrees under their checkout,
 // grouped by machine when more than one is known. After a space's name, the repo
@@ -326,16 +326,31 @@ export default class Spaces extends View {
       .rounded(8)
       .when(on, (el) => el.bg(t.selected))
       .when(!on, (el) => el.hover((s) => s.bg(t.hover)))
-      .when(this.pressed !== null && this.over === i && this.pressed !== i, (el) => el.border_t(2).border_color(t.accent))
+      .when(this.pressed === i && this.over !== i, (el) => el.opacity(0.5))
+      .when(this.pressed !== null && this.over === i && this.pressed !== i, (el) => el.child(
+        div().absolute().left(0).right(0).h(2).bg(t.accent)
+          .when(this.pressed < i, line => line.bottom(0))
+          .when(this.pressed > i, line => line.top(0)),
+      ))
       .on_mouse_down("left", () => {
         this.pressed = i;
         this.over = i;
       })
+      .on_mouse_move((_e, cx) => {
+        const source = spaces()[this.pressed];
+        const over = source && (source.machine ?? null) === (w.machine ?? null) ? i : null;
+        if (this.pressed !== null && this.over !== over) {
+          this.over = over;
+          cx.notify();
+        }
+      })
       .on_mouse_up("left", (_e, cx) => {
         const from = this.pressed;
+        const over = this.over;
         this.pressed = null;
-        if (from !== null && from !== i) run("space.move", { id: spaces()[from].id, index: i + 1 });
-        else run("space.select", { id: w.id });
+        this.over = null;
+        if (from !== null && over === i && from !== i) run("space.move", { id: spaces()[from].id, index: i + 1 });
+        else if (from === i) run("space.select", { id: w.id });
         cx.notify();
       })
       .on_mouse_down("right", () => this.menu(w))
@@ -388,7 +403,8 @@ export default class Spaces extends View {
     return v_flex().size_full().min_h(0).bg(t.chrome).text_size(13)
       .child(h_flex().h(31).pl(16).pr(10).items_center().justify_between().text_size(11.5).text_color(t.dim)
         .when(!collapsed, el => el.child("Spaces"))
-        .child(div().id("space-new").p(4).rounded(5).hover(s => s.bg(t.hover).text_color(t.foreground)).on_click(() => run("space.new")).child("+")))
+        .child(div().id("space-new").size(26).flex_none().flex().items_center().justify_center().rounded(6).hover(s => s.bg(t.hover).text_color(t.foreground))
+          .on_click(() => run("space.new")).child(svg("mods/workspace-chrome/plus.svg").size(14))))
       .child(v_flex().flex_1().min_h(0).px(8).pb(14).overflow_y_scrollbar().mode("always")
         .on_mouse_up("left", (_e, cx) => { this.pressed = null; cx.notify(); })
         .children(this.grouped(t, collapsed)));
