@@ -23,18 +23,19 @@ A replacement Spaces sidebar for the Herdr desktop app, with agent status direct
 - Herdr's unseen `done` state returns to `idle` after the user looks at it. Do not keep your own completion latch, change agent state, or imply that completion means success.
 - Animate only decorative outline elements. Keep the center transparent and leave the selected background, labels, avatars and row geometry static. Use native opacity animation, not a JavaScript timer, rotation, scaling or a moving highlight.
 - A click selects a space; drag reorders spaces on their machine; right-click opens the normal space menu. The header **+** creates a space. Machine headers fold and remember their state. Compact rows retain click-to-select.
-- Preserve the original Git hints, worktree nesting, avatar colors and local preferences. Add no keybindings.
+- Preserve the original Git hints, worktree nesting, avatar colors and local preferences. Bundle no keybindings.
+- Optional commands: `spaces-glow.first_done` focuses the first done agent in `agents()` order; `spaces-glow.next_working` selects the next space with a working agent in `spaces()` order, wrapping after the active space. No match means no action. Suggested keys are in the README.
 
 ## Built from
 
-- One mod: `mods/spaces-glow/main.js` and `mod.json`. The manifest is `place: "none"`; this replaces an existing Spaces block rather than automatically docking another panel. No `layouts/` folder or keys snippet is needed.
+- One mod: `mods/spaces-glow/main.js`, `navigation.js` and `mod.json`. The manifest is `place: "none"`; this replaces an existing Spaces block rather than automatically docking another panel. No `layouts/` folder or keys snippet is needed.
 - The installation agent clones a shipped layout if necessary, then changes only the existing Spaces block's `content.mod` to `spaces-glow` in the user's personal layout. Keep the sidebar node's `id` as `sidebar` so its width can select regular or compact rendering.
 - The implementation is a modified copy of Herdr App 0.1.11's `defaults/mods/spaces/main.js`, checked with Herdr App 0.1.11. Use `View`, `div` and `svg` from `gpui-kit`, plus `v_flex`/`h_flex` from `gpui-base`.
 - Use `spaces()`, `agents()`, `panes()`, `machines()`, `layout()`, `theme()` and `window()` for live data. Use `shared`/`setShared` for avatar colors and `localStorage` for folded machines.
 - Native `.loop("opacity", {from: 0.1, to: 0.24, period: 3200, easing: "ease-in-out"})` belongs on a decorative, absolutely positioned container with a stable per-space ID. Its only children are thin, increasingly transparent outline layers.
 - The colored attention treatment uses an inner fill with hex alpha `18` and four 1 px outlines with alpha `70`, `38`, `20`, `10`, offset outward by 0–3 px. The working contour is a separate lower layer; it never adds a fill.
 - Use Herdr's installed `mods/workspace-chrome/` SVGs and the shipped `menu` mod. Do not bundle the app, generated type declarations or personal configuration.
-- Preserve the original commands: `space.select`, `space.move`, `space.new`, plus the normal context-menu overlay.
+- Preserve the original commands: `space.select`, `space.move`, `space.new`, plus the normal context-menu overlay. Receive optional navigation commands through `nextCommand()`; `navigationTarget` chooses `agent.focus` or `space.select` without side effects.
 - **External access:** `exec` runs read-only `git status --porcelain=v2 --branch` (with optional locks disabled) and `git rev-parse` for each relevant repository, locally or on its Herdr machine. `watchFolder` watches local Git metadata. `hc machine ls --json` reads machine state. The inherited Git/machine refresh loops remain, but activity animation adds no polling. There is no analytics endpoint or credential access.
 
 ## Watch out
@@ -55,7 +56,7 @@ A replacement Spaces sidebar for the Herdr desktop app, with agent status direct
 ## Done when
 
 - `herdr-app check mods/spaces-glow` passes with a compatible installed Herdr App.
-- `node --experimental-vm-modules checks/spaces-glow.cjs` passes glow/pulse and drag/drop checks: no cross-machine move or move without hovering the target.
+- `node --experimental-vm-modules checks/spaces-glow.cjs` passes navigation, glow/pulse and drag/drop checks: no cross-machine move or move without hovering the target.
 - Working-only rows show a thin neutral, softly breathing contour with no spinner and no animated fill. The same holds in compact mode and while selected.
 - Done is green; blocked is orange; idle/no-agent has neither effect. Working mixed with done or blocked retains both signals. Another space's workers do not leak into this row.
 - Across several native screenshots, outline pixels change but the row center and selected background stay constant. There are no layout shifts or native render errors.

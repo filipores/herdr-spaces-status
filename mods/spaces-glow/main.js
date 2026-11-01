@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Derived from herdrdev/herdr-app v0.1.11, defaults/mods/spaces/main.js.
-// Modified by filipores: attention glows and a neutral, animated working contour.
+// Modified by filipores: attention glows, a neutral working contour and agent navigation.
 // Workspace spaces: stable colored avatars, worktrees under their checkout,
 // grouped by machine when more than one is known. After a space's name, the repo
 // its first terminal is in now, only where unusual: branch, ahead/behind. Attention states glow. Click to
@@ -8,7 +8,8 @@
 
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { spaces, machines, panes, agents, run, openOverlay, exec, hc, theme, shared, setShared, watchFolder, window, layout } from "herdr";
+import { spaces, machines, panes, agents, run, openOverlay, exec, hc, theme, shared, setShared, watchFolder, window, layout, nextCommand } from "herdr";
+import { navigationTarget } from "./navigation.js";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -91,6 +92,12 @@ export default class Spaces extends View {
     // `git status` walks the whole tree, on another machine a process there:
     // only when its answer could have changed (see `due`).
     cx.timer.every(250, (cx) => this.checkNew(cx));
+    cx.spawn(async () => {
+      for (;;) {
+        const target = navigationTarget(await nextCommand(), spaces(), agents());
+        if (target) run(target.name, target.args);
+      }
+    });
   }
 
   checkNew(cx) {
