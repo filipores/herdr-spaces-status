@@ -13,7 +13,7 @@ Selection backgrounds stay still. Expanded and compact sidebars are supported; s
 
 ## Install
 
-Requires the **Herdr desktop app**, not the terminal-only `herdr` program. Tested with Herdr App **0.1.10** on macOS.
+Requires the **Herdr desktop app**, not the terminal-only `herdr` program. Checked with Herdr App **0.1.11** on macOS.
 
 Ask your agent:
 
@@ -45,15 +45,15 @@ node --experimental-vm-modules --test checks/opencode-status.test.mjs
 herdr-app check mods/spaces-glow
 ```
 
-These cover 68 sidebar cases and 16 cases per bridge. Interactive verification is described in the [integration guide](integrations/README.md#verification).
+These cover glow/pulse rendering, safe drag-reordering and 16 cases per bridge. Interactive verification is described in the [integration guide](integrations/README.md#verification).
 
 ## Behavior and limits
 
 - Git and machine reads use the original read-only commands, including on connected Herdr machines. Avatar colors and folded-machine preferences are stored locally. No analytics, credential handling or added package dependencies.
 - Herdr changes `done` to `idle` once the response is seen. The mod does not keep its own completion state.
-- This custom copy does not automatically inherit upstream Spaces changes. Icons and context menus still come from Herdr's shipped mods.
+- Re-sync this fork with the shipped Spaces mod after Herdr updates; icons and menus still come from the app.
 - Light-mode inputs are tested; Light Mode, VoiceOver and system Reduce Motion have not been visually/accessibility tested. No documented Reduce Motion preference is exposed by the mod API.
 
 ## License
 
-[Apache-2.0](LICENSE). Derived from [Herdr's Spaces mod](https://github.com/herdrdev/herdr-app/blob/v0.1.9/defaults/mods/spaces/main.js); see [NOTICE](NOTICE). Independent community mod, not an official Herdr release.
+[Apache-2.0](LICENSE). Derived from [Herdr's Spaces mod](https://github.com/herdrdev/herdr-app/blob/v0.1.11/defaults/mods/spaces/main.js); see [NOTICE](NOTICE). Independent community mod, not an official Herdr release.

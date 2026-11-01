@@ -6,13 +6,14 @@ const vm = require('node:vm');
 
 // Record native builder output; herdr-app check verifies the real GPUI API.
 function element() {
-  const node = { styles: {}, nodes: [] };
+  const node = { styles: {}, nodes: [], events: {} };
   const builder = new Proxy(node, {
     get(target, key) {
       if (key in target) return target[key];
       return (...args) => {
         if (key === 'when') return args[0] ? args[1](builder) : builder;
-        if (key === 'children') node.nodes.push(...args[0]);
+        if (key.startsWith('on_mouse_')) node.events[`${key}:${typeof args[0] === 'string' ? args[0] : ''}`] = args.at(-1);
+        else if (key === 'children') node.nodes.push(...args[0]);
         else if (key === 'child') node.nodes.push(args[0]);
         else node.styles[key] = args;
         return builder;
@@ -23,7 +24,8 @@ function element() {
 }
 
 async function check() {
-  let agentList = [];
+  let agentList = [], spaceList = [];
+  const commands = [];
   const dependencies = {
     'gpui-kit': { View: class {}, div: element, svg: element },
     'gpui-base': { v_flex: element, h_flex: element },
@@ -33,7 +35,8 @@ async function check() {
     ].map(name => [name, () => null])),
   };
   Object.assign(dependencies.herdr, {
-    agents: () => agentList, spaces: () => [], machines: () => [],
+    agents: () => agentList, spaces: () => spaceList, machines: () => [],
+    run: (name, args) => commands.push({ name, args }),
   });
   const source = fs.readFileSync(path.join(__dirname, '../mods/spaces-glow/main.js'), 'utf8');
   const mod = new vm.SourceTextModule(source);
@@ -111,6 +114,27 @@ async function check() {
       }
     }
   }
-  console.log('PASS: 20 glow cases + 48 outline pulse cases, including stable selection, themes and mixed states.');
+  spaceList = [{ id: 'a', name: 'A' }, { id: 'b', name: 'B', machine: null }, { id: 'remote/c', name: 'C', machine: 'remote' }];
+  const row = i => view.row({ w: spaceList[i], i }, { ...theme, accent: '#abcdef' });
+  const event = (i, name) => row(i).events[name]?.({}, { notify() {} });
+  for (const [from, to, hover, move] of [[0, 1, true, true], [1, 0, true, true], [0, 2, true, false], [2, 0, true, false], [0, 1, false, false]]) {
+    commands.length = 0;
+    event(from, 'on_mouse_down:left');
+    if (hover) event(to, 'on_mouse_move:');
+    if (move) {
+      assert.equal(view.over, to, 'Hover must track the drop target');
+      assert.deepEqual(row(from).styles.opacity, [0.5]);
+      const line = descendants(row(to)).find(n => n.styles.bg?.[0] === '#abcdef');
+      assert.deepEqual(line?.styles[from < to ? 'bottom' : 'top'], [0], 'Drop line must show direction');
+    }
+    event(to, 'on_mouse_up:left');
+    assert.deepEqual(commands, move ? [{ name: 'space.move', args: { id: spaceList[from].id, index: to + 1 } }] : [], 'Only hovered targets on the same machine may move');
+    assert.equal(view.pressed, null);
+    assert.equal(view.over, null);
+  }
+  event(0, 'on_mouse_down:left');
+  event(0, 'on_mouse_up:left');
+  assert.deepEqual(commands, [{ name: 'space.select', args: { id: 'a' } }]);
+  console.log('PASS: 20 glow cases + 48 outline pulse cases + drag/drop and click guards.');
 }
 check().catch(error => { console.error(error); process.exitCode = 1; });
