@@ -52,7 +52,7 @@ Exit **1** means action is needed (including reload after installation); **0** m
 
 [Source](pi/question-status.ts) · [Tests](../checks/pi-question-status.test.mjs)
 
-The questionnaire tool's custom UI can leave Pi reporting `working` while it awaits input. This bridge connects its `rpiv:ask-user:blocked` events to native terminal status, only in interactive Herdr sessions (`HC_TERMINAL_ID`). Concurrent questions are tracked by ID; native permission/auth blocks retain priority, and the latest native report is restored when questions close.
+The questionnaire tool's custom UI can leave Pi reporting `working` while it awaits input. This bridge connects its `rpiv:ask-user:blocked` events to native terminal status, only in interactive Herdr sessions (`HC_TERMINAL_ID`). Current questionnaire versions track concurrent questions by ID. Version 2.11 sends only paired `active: true/false` events; the bridge counts those waits separately. Native permission/auth blocks retain priority, and the latest native report is restored when questions close.
 
 Install separately, **only with explicit permission**. Stop if the destination exists; do not overwrite another extension. From the repository root:
 
@@ -63,7 +63,9 @@ cp -n integrations/pi/question-status.ts ~/.pi/agent/extensions/herdr-question-s
 
 Run `/reload` in each existing Pi session; new sessions load it automatically. This does not edit Herdr's managed integration.
 
-**Limits:** interactive behavior was tested on Pi 1.4.0; setup also recognizes Pi 1.5 and was checked against its installed profiles. Revalidate runtime behavior after client updates. It temporarily decorates `terminal.setProgramStatus` because that version has no public blocked-source API for custom dialogs. It does not cover other custom dialogs, RPC, JSON or print mode. No polling, prompt contents, credentials or external commands are involved.
+When operating through `hc`, use native key input in an idle session with an empty editor: `hc keys HOST/TERMINAL / r e l o a d enter`. Do **not** use `hc send ... /reload`: agent-to-agent messages may be wrapped in `<hc>` tags, turning the command into a model prompt instead of reloading Pi. Leave working sessions and existing editor input untouched.
+
+**Limits:** interactive behavior was tested on Pi 1.4.0 and Pi 1.5.0. Remote Pi 1.5.0 checks covered both questionnaire 2.11.0 (legacy events) and 2.15.0 (IDs). Revalidate runtime behavior after client updates. It temporarily decorates `terminal.setProgramStatus` because that version has no public blocked-source API for custom dialogs. It does not cover other custom dialogs, RPC, JSON or print mode. No polling, prompt contents, credentials or external commands are involved.
 
 **Undo:** remove `~/.pi/agent/extensions/herdr-question-status.ts` and run `/reload` again.
 
@@ -98,4 +100,6 @@ Start a new OpenCode session inside Herdr. The bridge uses OpenCode's bundled So
 
 Run the [repository checks](../README.md#checks) before changing either bridge or setup. They cover pending dialogs, concurrency, state restoration, session isolation, cleanup, host discovery, remote login PATH, explicit install approval, no-overwrite behavior and incomplete-host reporting.
 
-Native checks used real clients with isolated profiles and synthetic local provider responses. Questions and approvals resumed `working` after confirmation; cancellations left no stuck `blocked` state. OpenCode was also checked for provider errors and normal exit. No real model calls or personal profiles were used. Remote attachment and authentication dialogs were not part of these interactive checks.
+The original native checks used real clients with isolated profiles and synthetic local provider responses. Questions and approvals resumed `working` after confirmation; cancellations left no stuck `blocked` state. OpenCode was also checked for provider errors and normal exit. Those checks used no real model calls or personal profiles.
+
+Additional remote Pi checks used ephemeral sessions in scratch folders on two connected Herdr Core 0.1.14 hosts, with their installed Pi 1.5.0 profiles and real model-driven questionnaires (only the question tool enabled). Both legacy 2.11.0 and current 2.15.0 questionnaires reported `blocked`/`question`; answer and Escape restored `working`, then `done`. Test terminals and folders were removed. This verified remote status reporting, not a screenshot of the sidebar. Authentication dialogs remain untested.

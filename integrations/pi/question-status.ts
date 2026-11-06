@@ -16,13 +16,14 @@ export default function (pi: ExtensionAPI) {
       const terminal = tui.terminal;
       const original = terminal.setProgramStatus;
       const pending = new Set<string>();
+      let legacyPending = 0;
       let nativeStatus: ProgramStatus = {
         app: "pi",
         state: ctx.isIdle() ? "idle" : "working",
       };
 
       const publish = () => {
-        const status: ProgramStatus = pending.size &&
+        const status: ProgramStatus = (pending.size || legacyPending) &&
           nativeStatus.state !== "blocked" && nativeStatus.state !== "clear"
           ? { app: "pi", state: "blocked", kind: "question", message: "Waiting for an answer" }
           : nativeStatus;
@@ -37,21 +38,29 @@ export default function (pi: ExtensionAPI) {
       terminal.setProgramStatus = report;
       const unsubscribe = pi.events.on(BLOCKED_EVENT, (data) => {
         const event = data as { active?: boolean; toolCallId?: string } | null;
-        if (typeof event?.active !== "boolean" ||
-          typeof event.toolCallId !== "string" || !event.toolCallId) return;
+        if (typeof event?.active !== "boolean") return;
 
-        if (event.active) {
-          if (pending.has(event.toolCallId)) return;
-          pending.add(event.toolCallId);
-        } else if (!pending.delete(event.toolCallId)) return;
+        if (event.toolCallId === undefined) {
+          // Questionnaire 2.11 emits paired active/inactive events without IDs.
+          if (event.active) legacyPending++;
+          else if (legacyPending) legacyPending--;
+          else return;
+        } else {
+          if (typeof event.toolCallId !== "string" || !event.toolCallId) return;
+          if (event.active) {
+            if (pending.has(event.toolCallId)) return;
+            pending.add(event.toolCallId);
+          } else if (!pending.delete(event.toolCallId)) return;
+        }
         publish();
       });
 
       dispose = () => {
         unsubscribe();
         if (terminal.setProgramStatus === report) terminal.setProgramStatus = original;
-        if (pending.size) {
+        if (pending.size || legacyPending) {
           pending.clear();
+          legacyPending = 0;
           publish();
         }
       };

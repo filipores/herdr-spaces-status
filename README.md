@@ -61,7 +61,7 @@ node --experimental-vm-modules --test checks/opencode-status.test.mjs
 herdr-app check mods/spaces-glow
 ```
 
-These cover glow/pulse rendering, navigation, safe drag-reordering, 16 cases per bridge, and host discovery/safe setup regressions. Node checks also run in GitHub Actions. Interactive verification is described in the [integration guide](integrations/README.md#verification).
+These cover glow/pulse rendering, navigation, safe drag-reordering, both bridges (including legacy Pi questionnaire events), and host discovery/safe setup regressions. Node checks also run in GitHub Actions. Interactive verification is described in the [integration guide](integrations/README.md#verification).
 
 ## Behavior and limits
 

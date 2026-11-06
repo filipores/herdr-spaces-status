@@ -103,10 +103,50 @@ test("native permission/auth blocks retain their kind and survive question closu
   assert.deepEqual(h.last, blocked);
 });
 
+test("legacy questionnaire 2.11 events without IDs block until answered or cancelled", async () => {
+  const h = await setup();
+  h.terminal.setProgramStatus(working);
+  h.events.emit(channel, { active: true });
+  assert.deepEqual(h.last, blocked);
+  h.terminal.setProgramStatus(working);
+  assert.deepEqual(h.last, blocked);
+  h.events.emit(channel, { active: false });
+  assert.deepEqual(h.last, working);
+  const count = h.reports.length;
+  h.events.emit(channel, { active: false });
+  assert.equal(h.reports.length, count);
+});
+
+test("paired legacy waits and ID-based waits do not clear each other", async () => {
+  const h = await setup();
+  h.terminal.setProgramStatus(working);
+  h.events.emit(channel, { active: true });
+  h.events.emit(channel, { active: true });
+  h.wait(true, "modern");
+  h.events.emit(channel, { active: false });
+  h.wait(false, "modern");
+  assert.deepEqual(h.last, blocked);
+  h.events.emit(channel, { active: false });
+  assert.deepEqual(h.last, working);
+});
+
+test("reload clears legacy waits and restores the latest native report", async () => {
+  const h = await setup();
+  h.terminal.setProgramStatus(working);
+  h.events.emit(channel, { active: true });
+  h.terminal.setProgramStatus({ app: "pi", state: "done" });
+  assert.deepEqual(h.last, blocked);
+  await h.lifecycle("session_start");
+  assert.deepEqual(h.last, { app: "pi", state: "done" });
+  assert.equal(h.events.listenerCount(channel), 1);
+  h.terminal.setProgramStatus(working);
+  assert.deepEqual(h.last, working);
+});
+
 test("malformed or unmatched events never change a native status", async () => {
   const h = await setup();
   h.terminal.setProgramStatus(working);
-  for (const data of [null, undefined, {}, "bad", { active: true },
+  for (const data of [null, undefined, {}, "bad", { active: true, toolCallId: null },
     { active: true, toolCallId: "" }, { active: "true", toolCallId: "a" },
     { active: false, toolCallId: "unknown" }]) h.events.emit(channel, data);
   assert.deepEqual(h.reports, [working]);
