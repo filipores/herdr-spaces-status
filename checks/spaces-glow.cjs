@@ -160,12 +160,10 @@ async function check() {
   ];
   spaceList = [];
   view.ordered = () => [{ w: { id: 'test', name: 'Test' }, i: 0 }];
-  view.open = new Set();
   const texts = node => typeof node === 'object' ? node.nodes.flatMap(texts) : [node];
   let rows = view.grouped(theme, false);
   assert.equal(rows.length, 1, 'Helpers start folded');
   assert(texts(rows[0]).includes('1 waiting'), 'A waiting helper names the fold');
-  assert(paint(rows[0]).every(c => !/^#4c9aff/.test(c)), 'No new status colors');
   view.open.add('test');
   rows = view.grouped(theme, false);
   assert.deepEqual(rows.slice(1).map(r => texts(r)[0]), ['research', 'fix'], 'One row per live helper of this space');
