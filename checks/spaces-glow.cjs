@@ -24,7 +24,7 @@ function element() {
 }
 
 async function check() {
-  let agentList = [], spaceList = [];
+  let agentList = [], spaceList = [], terminalList = [];
   const commands = [];
   const dependencies = {
     'gpui-kit': { View: class {}, div: element, svg: element },
@@ -35,7 +35,7 @@ async function check() {
     ].map(name => [name, () => null])),
   };
   Object.assign(dependencies.herdr, {
-    agents: () => agentList, spaces: () => spaceList, machines: () => [],
+    agents: () => agentList, terminals: () => terminalList, spaces: () => spaceList, machines: () => [],
     run: (name, args) => commands.push({ name, args }),
   });
   const source = fs.readFileSync(path.join(__dirname, '../mods/spaces-glow/main.js'), 'utf8');
@@ -150,6 +150,29 @@ async function check() {
   assert.equal(navigationTarget('next_working', sp, []), undefined);
   assert.equal(navigationTarget('next_working', [], ag), undefined);
   assert.equal(navigationTarget('unknown', sp, ag), undefined);
-  console.log('PASS: 20 glow cases + 48 outline pulse cases + drag/drop, click and navigation guards.');
+  // Helpers: live sub-agents of this space's agents, folded under the space.
+  agentList = [{ address: 't1', space: 'test', status: 'idle' }, { address: 't2', space: 'test', status: 'working' }];
+  terminalList = [
+    { address: 't2', parent: 't1', state: 'live', name: 'research' },
+    { address: 't3', parent: 't1', state: 'live', name: 'fix', status: 'blocked' },
+    { address: 't4', parent: 't9', state: 'live', name: 'elsewhere' },
+    { address: 't5', parent: 't1', state: 'exited', name: 'gone' },
+  ];
+  spaceList = [];
+  view.ordered = () => [{ w: { id: 'test', name: 'Test' }, i: 0 }];
+  const texts = node => typeof node === 'object' ? node.nodes.flatMap(texts) : [node];
+  let rows = view.grouped(theme, false);
+  assert.equal(rows.length, 1, 'Helpers start folded');
+  assert(texts(rows[0]).includes('1 waiting'), 'A waiting helper names the fold');
+  view.open.add('test');
+  rows = view.grouped(theme, false);
+  assert.deepEqual(rows.slice(1).map(r => texts(r)[0]), ['research', 'fix'], 'One row per live helper of this space');
+  const [working, waiting] = rows.slice(1).map(r => descendants(r).find(n => n.styles.size));
+  assert(working.styles.loop?.[1].period >= 3000, 'A working helper breathes slowly');
+  assert.deepEqual(waiting.styles.bg, ['#f59e0b'], 'A waiting helper uses the blocked orange');
+  commands.length = 0;
+  rows.slice(1).forEach(r => r.styles.on_click[0]());
+  assert.deepEqual(commands.map(c => c.name), ['agent.focus', 'terminal.peek'], 'Tabs focus, paneless helpers peek');
+  console.log('PASS: 20 glow cases + 48 outline pulse cases + drag/drop, click, navigation and helper guards.');
 }
 check().catch(error => { console.error(error); process.exitCode = 1; });

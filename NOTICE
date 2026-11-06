@@ -6,8 +6,8 @@ https://github.com/herdrdev/herdr-app/blob/v0.1.11/defaults/mods/spaces/main.js
 Herdr App is licensed under the Apache License, Version 2.0.
 
 Modifications by filipores add green/orange attention glows, a neutral animated
-working contour, optional agent navigation commands, and corresponding checks
-and documentation.
+working contour, optional agent navigation commands, foldable rows for the helpers agents
+start with hc (plus bin/hc-tab), and corresponding checks and documentation.
 The original mod metadata is retained in mods/spaces-glow/mod.json, with its
 display title changed to Spaces Status.
 
