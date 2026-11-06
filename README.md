@@ -11,6 +11,18 @@ Agent status directly on your Herdr spaces. No separate Agents section needed fo
 
 Selection backgrounds stay still. Expanded and compact sidebars are supported; spaces with several agents can show working and attention signals together.
 
+## Helpers
+
+Helpers an agent starts with `hc run` fold under its space.
+
+![Helpers folded under their space](helpers.png)
+
+- **Folded** by default: `2 active`, `1 waiting` or `3 done` at the end of the row.
+- **Unfolded:** one row per helper with its model and effort. A click opens its tab, or a peek if it has none.
+- Working breathes in silver, waiting takes the blocked orange, done stays silent.
+
+`bin/hc-tab <name> <folder> <command…>` starts a helper as its own tab in the caller's space. It stays the caller's child, so `hc wait --children` and `hc send` work as before.
+
 ## Install
 
 Requires the **Herdr desktop app**, not the terminal-only `herdr` program. Checked with Herdr App **0.1.11** on macOS.
@@ -61,7 +73,7 @@ node --experimental-vm-modules --test checks/opencode-status.test.mjs
 herdr-app check mods/spaces-glow
 ```
 
-These cover glow/pulse rendering, navigation, safe drag-reordering, both bridges (including legacy Pi questionnaire events), and host discovery/safe setup regressions. Node checks also run in GitHub Actions. Interactive verification is described in the [integration guide](integrations/README.md#verification).
+These cover glow/pulse rendering, navigation, safe drag-reordering, helper folding and routing, both bridges (including legacy Pi questionnaire events), and host discovery/safe setup regressions. Node checks also run in GitHub Actions. Interactive verification is described in the [integration guide](integrations/README.md#verification).
 
 ## Behavior and limits
 

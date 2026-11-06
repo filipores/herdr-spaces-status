@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Derived from herdrdev/herdr-app v0.1.11, defaults/mods/spaces/main.js.
-// Modified by filipores: attention glows, a neutral working contour and agent navigation.
+// Modified by filipores: attention glows, a neutral working contour, agent navigation and
+// foldable hc helpers (sub-agents of a space's agents) under their space.
 // Workspace spaces: stable colored avatars, worktrees under their checkout,
 // grouped by machine when more than one is known. After a space's name, the repo
 // its first terminal is in now, only where unusual: branch, ahead/behind. Attention states glow. Click to
@@ -8,7 +9,7 @@
 
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { spaces, machines, panes, agents, run, openOverlay, exec, hc, theme, shared, setShared, watchFolder, window, layout, nextCommand } from "herdr";
+import { spaces, machines, panes, agents, terminals, run, openOverlay, exec, hc, theme, shared, setShared, watchFolder, window, layout, nextCommand } from "herdr";
 import { navigationTarget } from "./navigation.js";
 
 function find(node, id) {
@@ -69,7 +70,38 @@ function workPulse(id, t) {
       div().absolute().inset(-i).rounded(8 + i).border(1).border_color(t.foreground).opacity(opacity)));
 }
 
+// Helpers: live terminals an agent in the space started with `hc run` (see bin/hc-tab).
+// Same vocabulary as the spaces: working is quiet silver, waiting is the blocked orange,
+// finished is silent (its parent's done is the news).
+const waits = (h) => h.status === "blocked" || h.status === "error";
+const helperTone = (t, h) => (waits(h) ? GLOW.blocked : h.status === "working" ? t.muted : t.dim);
+const breathe = (el) => el.loop("opacity", { from: 0.35, to: 0.9, period: 3200, easing: "ease-in-out" });
+
+function helperModel(k) {
+  try {
+    const d = JSON.parse(k.labels?.["herdr.session-details"] ?? "{}");
+    return [d.model?.id?.replace(/^gpt-/, ""), d.effort].filter(Boolean).join(" · ");
+  } catch { return ""; }
+}
+
+function helpersBySpace() {
+  const list = agents();
+  const status = new Map(list.map((a) => [a.address, a.status]));
+  const kids = terminals().filter((k) => k.state === "live" && k.parent);
+  const out = {};
+  for (const a of list) {
+    for (const k of kids) {
+      if (k.parent !== a.address) continue;
+      // In agents() = it has a pane (a tab, from spawn); else a plain `hc run` sub-agent without one.
+      (out[a.space] ??= []).push({ address: k.address, name: k.name ?? k.address, status: status.get(k.address) ?? k.status, model: helperModel(k), pane: status.has(k.address) });
+    }
+  }
+  return out;
+}
+
 export default class Spaces extends View {
+  open = new Set(); // spaces whose helpers are unfolded; init() restores the stored ones
+
   init(_props, cx) {
     this.git = {}; // where() -> { name, branch, ahead, behind, repo, linked }, null: not a repo
     this.checked = {}; // where() -> when it was last looked at
@@ -87,6 +119,7 @@ export default class Spaces extends View {
     this.over = null;
     this.machines = [];
     this.folded = new Set(JSON.parse(localStorage.getItem("machines.folded") ?? "[]"));
+    this.open = new Set(JSON.parse(localStorage.getItem("helpers.open") ?? "[]"));
     this.refreshMachines(cx);
     cx.timer.every(15000, cx => this.refreshMachines(cx));
     // `git status` walks the whole tree, on another machine a process there:
@@ -256,9 +289,11 @@ export default class Spaces extends View {
   grouped(t, collapsed) {
     const rows = this.ordered();
     const working = new Set(agents().filter(a => a.status === "working").map(a => a.space));
+    const helpers = helpersBySpace();
     const draw = (r) => {
-      const row = { ...r, working: working.has(r.w.id) };
-      return collapsed ? this.compact(row, t) : this.row(row, t);
+      const row = { ...r, working: working.has(r.w.id), helpers: helpers[r.w.id] ?? [] };
+      if (collapsed) return [this.compact(row, t)];
+      return [this.row(row, t), ...(this.open.has(r.w.id) ? this.helperRows(row.helpers, t) : [])];
     };
     const remote = [...new Set([...rows.map(r => r.w.machine).filter(Boolean), ...this.machines.map(m => m.name)])].sort();
     const loading = m => {
@@ -267,7 +302,7 @@ export default class Spaces extends View {
         || spaces().some(s => (s.machine ?? null) === m && !this.shown.has(s.id));
     };
     const loadingRow = m => div().id(`machine-loading-${m ?? "local"}`).h(28).flex_none().px(8).text_size(12).text_color(t.dim).child(collapsed ? "…" : "Loading…");
-    if (!remote.length) return loading(null) && !rows.length ? [loadingRow(null)] : rows.map(draw);
+    if (!remote.length) return loading(null) && !rows.length ? [loadingRow(null)] : rows.flatMap(draw);
     const machineNames = [null, ...remote];
     return machineNames.flatMap((m) => {
       const mine = rows.filter((r) => (r.w.machine ?? null) === m);
@@ -292,7 +327,7 @@ export default class Spaces extends View {
         .text_size(12).text_color(t.dim).hover(s => s.bg(t.hover).text_color(t.foreground))
         .on_click(() => run("space.new", m ? { machine: m } : {}))
         .child(svg("mods/workspace-chrome/plus.svg").size(12)).when(!collapsed, el => el.child("New space there"));
-      return [head, ...(folded ? [] : mine.length ? mine.map(draw) : [loading(m) ? loadingRow(m) : empty])];
+      return [head, ...(folded ? [] : mine.length ? mine.flatMap(draw) : [loading(m) ? loadingRow(m) : empty])];
     });
   }
 
@@ -318,7 +353,41 @@ export default class Spaces extends View {
       .when(g.behind > 0, (el) => el.child(div().flex_none().text_color(t.ansi1).child(`\u2193${g.behind}`)));
   }
 
-  row({ w, i, g, tree, working }, t) {
+  // "2 active ›" at the row's end: folded by default, a click shows the helpers under the space.
+  helperToggle(w, helpers, t) {
+    const open = this.open.has(w.id);
+    const waiting = helpers.filter(waits).length;
+    const active = helpers.filter((h) => h.status === "working").length;
+    const color = waiting ? GLOW.blocked : active ? t.muted : t.dim;
+    return h_flex().id(`helpers-${w.id}`).flex_none().h(20).px(5).gap(5).items_center().rounded(5)
+      .text_size(11.5).text_color(waiting ? GLOW.blocked : t.dim).cursor_pointer()
+      .hover((s) => s.bg(t.hover).text_color(t.foreground))
+      .on_mouse_down("left", (_e, cx) => cx.stop_propagation()) // not a press on the row: no select, no drag
+      .on_click((_e, cx) => {
+        cx.stop_propagation();
+        open ? this.open.delete(w.id) : this.open.add(w.id);
+        localStorage.setItem("helpers.open", JSON.stringify([...this.open]));
+        cx.notify();
+      })
+      .child(div().id(`helpers-dot-${w.id}`).size(6).rounded(3).flex_none().bg(color).when(active > 0 && !waiting, breathe))
+      .child(waiting ? `${waiting} waiting` : active ? `${active} active` : `${helpers.length} done`)
+      .child(svg(`mods/workspace-chrome/chevron-${open ? "down" : "right"}.svg`).size(10).flex_none());
+  }
+
+  helperRows(helpers, t) {
+    // Laid out like a worktree row (28 high, 22 in, a 13-wide mark), only quieter.
+    return helpers.map((h) => h_flex().id(`helper-${h.address}`).h(28).flex_none().px(8).pl(30).gap(9).items_center().rounded(8)
+      .text_size(12.5).text_color(t.muted).cursor_pointer()
+      .hover((s) => s.bg(t.hover).text_color(t.foreground))
+      // agent.focus can't show a sub-agent without a pane; peek can (with keep-as-tab).
+      .on_click(() => run(h.pane ? "agent.focus" : "terminal.peek", { terminal: h.address }))
+      .child(h_flex().w(13).flex_none().justify_center()
+        .child(div().id(`helper-dot-${h.address}`).size(6).rounded(3).bg(helperTone(t, h)).when(h.status === "working", breathe)))
+      .child(div().flex_1().min_w(0).truncate().child(h.name))
+      .when(Boolean(h.model), (el) => el.child(div().flex_none().text_size(11.5).text_color(t.dim).child(h.model))));
+  }
+
+  row({ w, i, g, tree, working, helpers = [] }, t) {
     const on = w.active;
     const colors = shared("space.colors") ?? {};
     const color = colors[w.id] ?? "ansi6";
@@ -370,7 +439,8 @@ export default class Spaces extends View {
           .when(Boolean(tree), el => el.pl(22).child(svg("mods/workspace-chrome/branch.svg").size(13).text_color(t.dim)))
           .when(!tree, el => el.child(h_flex().size(18).flex_none().rounded(5).bg(fill).items_center().justify_center().text_size(10.5).font_bold().text_color("#ffffff").child([...w.name][0]?.toUpperCase() ?? "?")))
           .child(div().flex_shrink(0).max_w(150).truncate().text_color(t.foreground).child(w.name))
-          .child(g ? this.gitTail(g, tree, w.name, t) : div().flex_1()),
+          .child(g ? this.gitTail(g, tree, w.name, t) : div().flex_1())
+          .when(helpers.length > 0, (el) => el.child(this.helperToggle(w, helpers, t))),
       );
   }
 
