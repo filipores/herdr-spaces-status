@@ -41,7 +41,8 @@ A replacement Spaces sidebar for the Herdr desktop app, with agent status direct
 ## Watch out
 
 - This is for the native **Herdr App**, not the terminal-only Herdr configuration.
-- The optional Pi and OpenCode bridges are separate from the mod; see [client integrations](integrations/README.md) for tested versions, setup and removal. Install them only with explicit permission, after verifying a real status gap. The sidebar itself must not infer or modify agent states.
+- **Host setup is mandatory:** run `node scripts/status-setup.mjs` from this repo before declaring installation complete. It checks local and all machines registered with `hc machine ls`; an unreachable host is an unresolved result, not a skipped success. Repeat after adding/reconnecting hosts or updating clients.
+- Pi/OpenCode bridges are separate from the mod and belong on each machine running that client. See [host setup](integrations/README.md#required-host-setup). After explicit approval of each target, use `--install-pi HOST` for a missing compatible Pi bridge; never overwrite differing files or silently edit OpenCode config. The sidebar itself must not install extensions, infer questions or modify agent states.
 - Never overwrite a user's existing mod, layout or keybindings. If `spaces-glow` already exists, stop or rename the new copy and its layout reference.
 - Copying a `place: "none"` mod alone does not make it visible. Explicitly replace the existing Spaces block. Do not create a duplicate sidebar.
 - A cloned layout still references its original mods. Point the Spaces block at the custom mod; leave every other block alone.
@@ -56,6 +57,7 @@ A replacement Spaces sidebar for the Herdr desktop app, with agent status direct
 ## Done when
 
 - `herdr-app check mods/spaces-glow` passes with a compatible installed Herdr App.
+- The host setup report lists every registered host. Missing, conflicting, unsupported and unreachable results are resolved or clearly handed off as incomplete. A matched file is not proof the extension is loaded: existing Pi sessions need `/reload`, and each used host/client needs a real question → orange → answer/cancel → no stuck orange check. Do not interrupt a live task to run it; get permission or report it pending. Native Claude Code/Codex and project/custom profiles also need this runtime check.
 - `node --experimental-vm-modules checks/spaces-glow.cjs` passes navigation, glow/pulse and drag/drop checks: no cross-machine move or move without hovering the target.
 - Working-only rows show a thin neutral, softly breathing contour with no spinner and no animated fill. The same holds in compact mode and while selected.
 - Done is green; blocked is orange; idle/no-agent has neither effect. Working mixed with done or blocked retains both signals. Another space's workers do not leak into this row.

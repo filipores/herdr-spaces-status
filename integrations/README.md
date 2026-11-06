@@ -15,6 +15,39 @@ Tested in interactive sessions with Herdr Core **0.1.15**:
 
 Support depends on the **client**, not the model selected inside it. Verify a missing status report before installing a bridge; do not duplicate native reporting. Revalidate compatibility after client updates and remove bridges when native support covers the gap.
 
+## Required host setup
+
+The mod runs on the display machine, but status is emitted where the agent runs. A local bridge does **not** cover Pi sessions on an SSH server. Run this from the repository with Node **22.18+** and `hc` available:
+
+```sh
+node scripts/status-setup.mjs
+```
+
+This is read-only by default. It discovers **all** registered machines with `hc machine ls --json`, then checks the local user and each connected remote user through `hc exec`. Remote checks use `sh -lc` to load the login PATH; Node and the relevant client must be available there. It does not register/connect machines, update packages, edit settings or restart sessions.
+
+After the user explicitly approves named hosts, create missing Pi bridges there, for example:
+
+```sh
+node scripts/status-setup.mjs --install-pi local --install-pi my-server
+```
+
+Use actual names from `hc machine ls`; repeat the flag for each approved host. Existing identical files are left alone; differing files and symlinks are never overwritten. This installs only the bundled Pi bridge, not Pi or the questionnaire package. OpenCode remains a manual, version-gated step below.
+
+Results are reported **per host/client**:
+
+| Result | Meaning / next step |
+| --- | --- |
+| `matched` | File/config matches this repo; loading and runtime behavior still unverified. |
+| `installed` | New Pi bridge created; `/reload` in existing Pi sessions or start a new session. |
+| `missing` | Required Pi bridge absent; approve installation for this host. |
+| `conflict` / `review` / `error` | Resolve the reported file, compatibility, configuration or execution issue manually. |
+| `unreachable` | Registered host was not checked; reconnect and rerun. |
+| `not-detected` | No supported global Pi questionnaire package found; not a runtime success claim. |
+
+Exit **1** means action is needed (including reload after installation); **0** means no detected file/config gaps, **not** that orange works end-to-end. After reload, verify a real questionnaire on each used host: open → orange, answer → working, reopen/cancel → no stuck orange. Test native Claude Code/Codex separately. Do not inject questions or reload into someone's active task without permission; report verification pending instead.
+
+**Scope:** the current remote account's global Pi profile (`PI_CODING_AGENT_DIR`, otherwise `~/.pi/agent`) and standard OpenCode config (`XDG_CONFIG_HOME`, otherwise `~/.config`). Supported Pi package declarations are npm or local paths for `@juicesharp/rpiv-ask-user-question`; setup checks its event contract and Pi 1.4/1.5. Resource filters or unknown versions require review. Project-only packages, session flags, other profiles, git-packaged questionnaires and custom OpenCode paths require manual checks. Native status is not inferred from installed files. Repeat this preflight when hosts are added/reconnected or clients are updated; no background installer is added to the sidebar.
+
 ## Pi
 
 [Source](pi/question-status.ts) · [Tests](../checks/pi-question-status.test.mjs)
@@ -30,7 +63,7 @@ cp -n integrations/pi/question-status.ts ~/.pi/agent/extensions/herdr-question-s
 
 Run `/reload` in each existing Pi session; new sessions load it automatically. This does not edit Herdr's managed integration.
 
-**Limits:** tested on Pi 1.4.0. It temporarily decorates `terminal.setProgramStatus` because that version has no public blocked-source API for custom dialogs. It does not cover other custom dialogs, RPC, JSON or print mode. No polling, prompt contents, credentials or external commands are involved.
+**Limits:** interactive behavior was tested on Pi 1.4.0; setup also recognizes Pi 1.5 and was checked against its installed profiles. Revalidate runtime behavior after client updates. It temporarily decorates `terminal.setProgramStatus` because that version has no public blocked-source API for custom dialogs. It does not cover other custom dialogs, RPC, JSON or print mode. No polling, prompt contents, credentials or external commands are involved.
 
 **Undo:** remove `~/.pi/agent/extensions/herdr-question-status.ts` and run `/reload` again.
 
@@ -63,6 +96,6 @@ Start a new OpenCode session inside Herdr. The bridge uses OpenCode's bundled So
 
 ## Verification
 
-Run the [repository checks](../README.md#checks) before changing either bridge. They cover pending dialogs, concurrency, state restoration, session isolation, cleanup and host guards.
+Run the [repository checks](../README.md#checks) before changing either bridge or setup. They cover pending dialogs, concurrency, state restoration, session isolation, cleanup, host discovery, remote login PATH, explicit install approval, no-overwrite behavior and incomplete-host reporting.
 
 Native checks used real clients with isolated profiles and synthetic local provider responses. Questions and approvals resumed `working` after confirmation; cancellations left no stuck `blocked` state. OpenCode was also checked for provider errors and normal exit. No real model calls or personal profiles were used. Remote attachment and authentication dialogs were not part of these interactive checks.
