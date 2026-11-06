@@ -25,6 +25,7 @@ For manual installation:
 2. Copy `mods/spaces-glow/` into your Herdr app home's `mods/` directory (default: `~/.config/herdr-app/mods/`). Stop if that name already exists.
 3. In a **personal** layout, change the existing Spaces block's `content.mod` from `spaces` to `spaces-glow`. Keep its node ID as `sidebar`. Clone a shipped layout first; never edit Herdr's originals.
 4. Run `herdr-app check ~/.config/herdr-app/mods/spaces-glow`, then check `herdr-app status` for errors. Adjust the path if your app home differs.
+5. From this repository, run `node scripts/status-setup.mjs`. This mandatory, read-only preflight checks local and **every registered Herdr server**. Resolve or explicitly report each gap, then verify a real question/answer/cancel on each used host/client. See [host setup](integrations/README.md#required-host-setup). Installing the sidebar alone does not enable remote question reporting.
 
 Copying the mod alone does not display it: `place: "none"` prevents a duplicate sidebar. The technical mod ID remains `spaces-glow` so existing layouts keep working. No layouts or keybindings are bundled.
 
@@ -47,7 +48,7 @@ Suggestions only: merge these into your `keys.json` after checking for conflicts
 
 ## Client integrations
 
-The sidebar displays status reported by each client. For missing question indicators, see [client compatibility and optional bridges](integrations/README.md). That guide covers tested versions, Pi and OpenCode setup, and removal. Bridges are separate from the sidebar install and require explicit permission.
+The sidebar displays status reported by each client. The [host setup check](integrations/README.md#required-host-setup) is required; bridge installation remains opt-in. Pi bridges belong on the machine **running Pi**, not just the computer displaying Herdr. OpenCode setup is manual and version-gated; native Claude Code/Codex reporting needs no bridge.
 
 ## Checks
 
@@ -55,12 +56,12 @@ From the repository root, with Node **22.18+** and Herdr App installed:
 
 ```sh
 node --experimental-vm-modules checks/spaces-glow.cjs
-node --test checks/pi-question-status.test.mjs
+node --test checks/pi-question-status.test.mjs checks/status-setup.test.mjs
 node --experimental-vm-modules --test checks/opencode-status.test.mjs
 herdr-app check mods/spaces-glow
 ```
 
-These cover glow/pulse rendering, navigation, safe drag-reordering and 16 cases per bridge. Interactive verification is described in the [integration guide](integrations/README.md#verification).
+These cover glow/pulse rendering, navigation, safe drag-reordering, 16 cases per bridge, and host discovery/safe setup regressions. Node checks also run in GitHub Actions. Interactive verification is described in the [integration guide](integrations/README.md#verification).
 
 ## Behavior and limits
 
